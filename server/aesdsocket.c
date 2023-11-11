@@ -20,8 +20,8 @@
 #define     MAX_BUFF_SIZE ((int) 22768)  
 
 /* Global variables for singal handling */
-bool caught_sigint = false;
-bool caught_sigterm = false;
+volatile bool caught_sigint = false;
+volatile bool caught_sigterm = false;
 
 static void signalHandlers(int signum)
 {
@@ -34,6 +34,7 @@ static void signalHandlers(int signum)
     {
         caught_sigterm = true;
     }
+    remove(AESD_SOCKET_LOG_FILE);
 }
 
 static ssize_t write_full(int fd, const char *buffer, size_t count) {
@@ -178,10 +179,9 @@ int main(int argc, char *argv[])
     socklen_t client_addr_size;
     struct sockaddr client_addr;
     int clientfd;
-    int recv_result;
+    // int recv_result;
     char c_ip[INET6_ADDRSTRLEN] = {0};
     char* recv_char = NULL;
-    bool end_of_packet = false;
     recv_char = malloc(22768);
     while (!(caught_sigint || caught_sigterm))
     {
@@ -201,6 +201,94 @@ int main(int argc, char *argv[])
         }
 
         /* Recieving and sending data on socket */
+        ssize_t total_received = 0;
+        bool end_of_packet = false;
+        while (!end_of_packet && total_received < MAX_BUFF_SIZE - 1 && !(caught_sigint || caught_sigterm)) {
+            ssize_t recv_result = recv(clientfd, recv_char + total_received, MAX_BUFF_SIZE - 1 - total_received, 0);
+            if (recv_result == -1) {
+                perror("recv");
+                break;
+            } else if (recv_result == 0) {
+                end_of_packet = true;
+                syslog(LOG_DEBUG, "Closed connection from %s", c_ip);
+                printf("Client %s disconnected...\n", c_ip);
+            } else {
+                total_received += recv_result;
+                // Check for newline or other delimiter indicating end of message
+                if (strchr(recv_char, '\n') != NULL) {
+                    end_of_packet = true;
+                }
+            }
+        }
+
+        recv_char[total_received] = '\0'; // Null-terminate the received string
+
+        // Writing to the file (and any other processing)
+        int fd = open(AESD_SOCKET_LOG_FILE, O_RDWR | O_CREAT | O_APPEND, S_IRWXU | S_IRWXG);
+        if (fd != -1) {
+            if (write_full(fd, recv_char, strlen(recv_char)) == -1) {
+                perror("file write");
+            }
+
+            if (lseek(fd, 0, SEEK_SET) == -1)
+            {
+                perror("lseek");
+                close(fd);
+                continue;
+            }
+
+            char buffer[MAX_BUFF_SIZE];
+            int bytes_read;
+            char *line = NULL;
+            size_t len = 0;
+
+            while ((bytes_read = read(fd, buffer, sizeof(buffer) - 1)) > 0) {
+                buffer[bytes_read] = '\0';
+                char *token = strtok(buffer, "\n");
+
+                while (token != NULL) {
+                    len = strlen(token);
+                    line = realloc(line, len + 2);
+                    if (line == NULL) {
+                        perror("realloc");
+                        close(fd);
+                        free(line);
+                        return 1;
+                    }
+                    strcpy(line, token);
+                    strcat(line, "\n");
+                    
+                    // printf("Line: %s\n", line);
+                    res = send(clientfd, line, strlen(line), MSG_CONFIRM);
+                    if (res == -1)
+                    {
+                        perror("read");
+                        printf("read error (%d)\n", errno);
+                    }
+
+                    token = strtok(NULL, "\n");
+                }
+            }
+
+            // if (bytes_read == 0)
+            // {
+            //     printf("bytes_read = 0\n");
+            // }
+
+            if (bytes_read == -1) {
+                perror("read");
+            }
+
+            close(fd);
+            free(line);
+        } else {
+            perror("file open");
+        }
+
+        memset(recv_char, 0, MAX_BUFF_SIZE); // Reset buffer for next message
+        total_received = 0;
+
+        /*
         do
         {
             memset(recv_char, 0, 22768);
@@ -226,7 +314,6 @@ int main(int argc, char *argv[])
                     int fd = open(AESD_SOCKET_LOG_FILE, O_RDWR | O_CREAT | O_APPEND, S_IRWXU | S_IRWXG);
                     if (fd == -1)
                     {
-                        /* error */
                         perror("file open");
                         printf("File creation failed (errno %d)\n", errno);
                     }
@@ -303,6 +390,7 @@ int main(int argc, char *argv[])
             }
             
         } while (!end_of_packet && (!(caught_sigint || caught_sigterm)));
+        */
         
         shutdown(clientfd, SHUT_RDWR);
 
