@@ -31,7 +31,7 @@ all: $(APP_NAME)
 
 # Link the application
 $(APP_NAME): $(OBJS)
-	$(CC) $(OBJS) -o $@
+	$(CC) $(OBJS) -o $@ -pthread
 
 # Compile source files to object files
 $(OBJ_DIR)/%.o: %.c
