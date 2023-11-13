@@ -42,7 +42,7 @@ $(OBJ_DIR)/%.o: %.c
 .PHONY: clean
 clean:
 	rm -rf wr $(APP_NAME) iter $(OBJ_DIR)/*
-	rm valgrind-out.txt
+	# rm valgrind-out.txt
 
 # Include dependencies
 -include $(OBJS:.o=.d)
