@@ -27,7 +27,7 @@ void* threadfunc(void* thread_param)
         res = pthread_mutex_unlock(thread_function_args->mutex);
     }
 
-    thread_function_args->thread_complete_success = (res == 0);
+    thread_function_args->isRunning = (res == 0);
 
     return thread_param;
 }
@@ -53,7 +53,7 @@ bool start_thread_obtaining_mutex(pthread_t *thread, pthread_mutex_t *mutex,int 
     tdata->mutex = mutex;
     tdata->wait_to_obtain_ms = wait_to_obtain_ms;
     tdata->wait_to_release_ms = wait_to_release_ms;
-    tdata->thread_complete_success = false;
+    tdata->isRunning = false;
 
     if (pthread_create(thread, NULL, threadfunc, tdata) != 0)
     {

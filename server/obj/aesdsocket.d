@@ -1,1 +1,1 @@
-obj/aesdsocket.o obj/aesdsocket.d: aesdsocket.c
+obj/aesdsocket.o obj/aesdsocket.d: aesdsocket.c queue.h

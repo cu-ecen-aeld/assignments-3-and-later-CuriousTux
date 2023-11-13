@@ -21,7 +21,7 @@ struct thread_data{
      * Set to true if the thread completed with success, false
      * if an error occurred.
      */
-    bool thread_complete_success;
+    bool isRunning;
 };
 
 
