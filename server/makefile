@@ -9,6 +9,10 @@ OBJ_DIR ?= obj
 # Output directory for the application
 BIN_DIR ?= bin
 
+LDFLAGS ?= -lpthread -lrt
+
+TARGET ?= aesdsocket
+
 # Application name
 APP_NAME ?= aesdsocket
 
@@ -31,12 +35,12 @@ all: $(APP_NAME)
 
 # Link the application
 $(APP_NAME): $(OBJS)
-	$(CC) $(OBJS) -o $@ -pthread
+	$(CC) $(OBJS) -o $@ # -pthread
 
 # Compile source files to object files
 $(OBJ_DIR)/%.o: %.c
 	@mkdir -p $(OBJ_DIR)
-	$(CC) $(CFLAGS) -c $< -o $@
+	$(CC) $(CFLAGS) -c $< -o $@ $(INCLUDES) $(LDFLAGS) #$^ -o $@ $(INCLUDES) $(LDFLAGS) #-c $< -o $@
 
 # Clean target to remove the application and object files
 .PHONY: clean
