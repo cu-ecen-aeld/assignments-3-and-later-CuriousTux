@@ -1,24 +1,24 @@
 # Default compiler
-CC := gcc
+CC ?= gcc
 # Compiler flags
-CFLAGS := -Wall -Werror -Wextra -O2
+CFLAGS ?= -Wall -Werror -Wextra -O2
 # Source directory
-SRC_DIR := src
+SRC_DIR ?= src
 # Object directory
-OBJ_DIR := obj
+OBJ_DIR ?= obj
 # Output directory for the application
-BIN_DIR := bin
+BIN_DIR ?= bin
 
 # Application name
-APP_NAME := aesdsocket
+APP_NAME ?= aesdsocket
 
 # Source and object files
-SRCS := aesdsocket.c
-OBJS := $(SRCS:%.c=$(OBJ_DIR)/%.o)
+SRCS ?= aesdsocket.c
+OBJS ?= $(SRCS:%.c=$(OBJ_DIR)/%.o)
 
 # If the CROSS_COMPILE variable is set, prepend it to the CC variable
 ifdef CROSS_COMPILE
-    CC := $(CROSS_COMPILE)$(CC)
+    CC ?= $(CROSS_COMPILE)$(CC)
 endif
 
 # Define default target
