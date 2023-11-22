@@ -29,9 +29,64 @@
 struct aesd_buffer_entry *aesd_circular_buffer_find_entry_offset_for_fpos(struct aesd_circular_buffer *buffer,
             size_t char_offset, size_t *entry_offset_byte_rtn )
 {
-    /**
-    * TODO: implement per description
-    */
+    if (char_offset == 0 && buffer->in_offs == 0 && buffer->full == false)
+    {
+        return NULL;
+    }
+
+    if (char_offset == 0 && buffer->full == false)
+    {
+        *entry_offset_byte_rtn = 0;
+        return &((buffer)->entry[0]);
+    }
+
+    if (buffer->full == true)
+    {
+        uint8_t index;
+        for (index = 0; index < buffer->out_offs; index++)
+        {
+            char_offset += (buffer->entry[index]).size;
+        }
+    }
+    
+    uint8_t index;
+    struct aesd_buffer_entry *entry;
+    size_t total_size = 0;
+    AESD_CIRCULAR_BUFFER_FOREACH(entry,buffer,index) 
+    {
+        total_size += entry->size;
+        if (char_offset < entry->size)
+        {
+            *entry_offset_byte_rtn = char_offset;
+            return entry;
+        }
+        else
+        {
+            char_offset -= entry->size;
+        }
+    }
+
+    if (buffer->out_offs)
+    {
+        AESD_CIRCULAR_BUFFER_FOREACH(entry,buffer,index) 
+        {
+            if (index >= buffer->out_offs)
+            {
+                break;
+            }
+
+            if (char_offset < entry->size)
+            {
+                *entry_offset_byte_rtn = char_offset;
+                return entry;
+            }
+            else
+            {
+                char_offset -= entry->size;
+            }
+        }
+    }
+
     return NULL;
 }
 
@@ -44,9 +99,28 @@ struct aesd_buffer_entry *aesd_circular_buffer_find_entry_offset_for_fpos(struct
 */
 void aesd_circular_buffer_add_entry(struct aesd_circular_buffer *buffer, const struct aesd_buffer_entry *add_entry)
 {
-    /**
-    * TODO: implement per description
-    */
+    memcpy(&buffer->entry[buffer->in_offs], add_entry, sizeof(struct aesd_buffer_entry));
+
+   // Updating in_offs and out_offs
+   buffer->in_offs++;
+
+   if (buffer->in_offs == AESDCHAR_MAX_WRITE_OPERATIONS_SUPPORTED)
+   {
+        buffer->in_offs = 0;
+        buffer->full = true;
+
+        return;
+   }
+   
+   if (buffer->full == true)
+   {
+        buffer->out_offs++;
+        if (buffer->out_offs == AESDCHAR_MAX_WRITE_OPERATIONS_SUPPORTED)
+        {
+            buffer->out_offs = 0;
+        }
+        
+   }
 }
 
 /**
